@@ -1,0 +1,11 @@
+node_modules
+dist
+.env
+.env.local
+.expo
+.expo-shared
+web-build
+uploads/*
+!uploads/.gitkeep
+*.log
+.DS_Store

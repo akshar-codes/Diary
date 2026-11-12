@@ -1,0 +1,7 @@
+node_modules
+dist
+.expo
+uploads
+pnpm-lock.yaml
+*-lock.yaml
+.git
