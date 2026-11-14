@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Journal &amp; Notes</string>
+    <string name="nav_diary">Diary</string>
+    <string name="nav_notes">Notes</string>
+    <string name="nav_settings">Settings</string>
+    <string name="login_title">Welcome Back</string>
+    <string name="register_title">Create Account</string>
+    <string name="network_unavailable">No internet connection. Network is required to sync changes.</string>
+    <string name="update_available">Update Available</string>
+    <string name="update_now">Update Now</string>
+    <string name="update_later">Later</string>
+    <string name="downloading_update">Downloading update...</string>
+    <string name="install_permission_rationale">Please allow 'Install unknown apps' to install this update.</string>
+</resources>
