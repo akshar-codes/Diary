@@ -1,0 +1,19 @@
+{
+  "name": "Journal & Notes",
+  "short_name": "Journal",
+  "description": "Personal diary and notes — private, synced, minimal.",
+  "start_url": "/app/diary",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f172a",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
