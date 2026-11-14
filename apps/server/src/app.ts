@@ -17,20 +17,28 @@ export function createApp(): express.Application {
     }),
   );
 
-  // CORS configuration
+  const allowedOrigins = new Set(
+    env.CORS_ORIGINS.split(",")
+      .map((o) => o.trim())
+      .filter(Boolean),
+  );
+
+  // CORS configuration with exact-origin allowlisting
   app.use(
     cors({
       origin: (origin, callback) => {
-        // Allow mobile apps (no origin) and web frontend
-        if (
-          !origin ||
-          origin.startsWith("http://localhost") ||
-          origin.startsWith("http://127.0.0.1")
-        ) {
-          callback(null, true);
-        } else {
-          callback(null, true); // Permissive for local dev & demo
+        // Allow mobile apps (no origin), server-to-server, curl
+        if (!origin) {
+          return callback(null, true);
         }
+        // Exact match against allowed origins set
+        if (allowedOrigins.has(origin)) {
+          return callback(null, true);
+        }
+        callback(
+          new Error(`CORS policy violation: Origin '${origin}' is not allowed`),
+          false,
+        );
       },
       credentials: true,
       methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],

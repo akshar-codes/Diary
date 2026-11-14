@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: diary-notes-api
+    env: node
+    region: singapore
+    plan: starter
+    rootDir: .
+    buildCommand: pnpm install --frozen-lockfile && pnpm build:shared && pnpm build:server
+    startCommand: node apps/server/dist/server.js
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: TRASH_RETENTION_DAYS
+        value: "30"
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: ANDROID_VERSION_NAME
+        value: "1.0.0"
+      - key: ANDROID_VERSION_CODE
+        value: "1"
+      - key: ANDROID_MIN_VERSION_CODE
+        value: "1"
+      - key: ANDROID_APK_URL
+        sync: false
+      - key: ANDROID_RELEASE_NOTES
+        value: "Initial release"
+      - key: ANDROID_UPDATE_MANDATORY
+        value: "false"
+      - key: ANDROID_RELEASE_DATE
+        value: "2026-11-14T00:00:00.000Z"
+      - key: WEB_VERSION
+        value: "1.0.0"
+      - key: WEB_RELEASE_NOTES
+        value: ""
+      - key: WEB_RELEASE_DATE
+        value: "2026-11-14T00:00:00.000Z"
