@@ -6,10 +6,12 @@ import noteRoutes from "./noteRoutes";
 import folderRoutes from "./folderRoutes";
 import userRoutes from "./userRoutes";
 import attachmentRoutes from "./attachmentRoutes";
+import releaseRoutes from "./releaseRoutes";
 
 const router = Router();
 
 router.use("/auth", authRoutes);
+router.use("/releases", releaseRoutes);
 router.use("/diary", topicRoutes); // mounted so /diary/topics works
 router.use("/diary", diaryRoutes); // mounted so /diary/entries works
 router.use("/notes", noteRoutes);
