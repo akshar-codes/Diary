@@ -5,7 +5,6 @@
   "scripts": {
     "dev:server": "pnpm --filter @notes/server dev",
     "dev:web": "pnpm --filter @notes/web dev",
-    "dev:mobile": "pnpm --filter @notes/mobile start",
     "build:shared": "pnpm --filter @notes/shared build",
     "build:server": "pnpm --filter @notes/server build",
     "build:web": "pnpm --filter @notes/web build",
