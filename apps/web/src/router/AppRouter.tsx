@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { Layout } from "../components/common/Layout";
@@ -7,6 +7,9 @@ import { RegisterPage } from "../features/auth/pages/RegisterPage";
 import { DiaryPage } from "../features/diary/pages/DiaryPage";
 import { NotesPage } from "../features/notes/pages/NotesPage";
 import { SettingsPage } from "../features/settings/pages/SettingsPage";
+import { LandingPage } from "../features/landing/pages/LandingPage";
+import { useWebUpdateCheck } from "../hooks/useWebUpdateCheck";
+import { UpdateBanner } from "../components/common/UpdateBanner";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -39,7 +42,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/diary" replace />;
+    return <Navigate to="/app/diary" replace />;
   }
 
   return <>{children}</>;
@@ -47,48 +50,72 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 export const AppRouter: React.FC = () => {
   const initializeAuth = useAuthStore((s) => s.initializeAuth);
+  const { updateAvailable, updateInfo, activateUpdate } = useWebUpdateCheck();
+  const [dismissedUpdate, setDismissedUpdate] = useState(false);
 
   useEffect(() => {
     initializeAuth();
   }, [initializeAuth]);
 
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route
-        path="/login"
-        element={
-          <PublicRoute>
-            <LoginPage />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/register"
-        element={
-          <PublicRoute>
-            <RegisterPage />
-          </PublicRoute>
-        }
-      />
+    <>
+      {updateAvailable && !dismissedUpdate && (
+        <UpdateBanner
+          version={updateInfo?.version}
+          releaseNotes={updateInfo?.releaseNotes}
+          onUpdate={activateUpdate}
+          onDismiss={() => setDismissedUpdate(true)}
+        />
+      )}
 
-      {/* Protected routes */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Navigate to="/diary" replace />} />
-        <Route path="diary" element={<DiaryPage />} />
-        <Route path="notes" element={<NotesPage />} />
-        <Route path="settings" element={<SettingsPage />} />
-      </Route>
+      <Routes>
+        {/* Public Landing & Distribution Page */}
+        <Route path="/" element={<LandingPage />} />
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/diary" replace />} />
-    </Routes>
+        {/* Public Authentication routes */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <RegisterPage />
+            </PublicRoute>
+          }
+        />
+
+        {/* Legacy Bookmark Redirects preserving direct navigation */}
+        <Route path="/diary" element={<Navigate to="/app/diary" replace />} />
+        <Route path="/notes" element={<Navigate to="/app/notes" replace />} />
+        <Route
+          path="/settings"
+          element={<Navigate to="/app/settings" replace />}
+        />
+
+        {/* Protected application workspace */}
+        <Route
+          path="/app"
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Navigate to="/app/diary" replace />} />
+          <Route path="diary" element={<DiaryPage />} />
+          <Route path="notes" element={<NotesPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 };

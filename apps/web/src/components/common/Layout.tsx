@@ -27,9 +27,9 @@ export const Layout: React.FC = () => {
   };
 
   const navItems = [
-    { name: "Diary", to: "/diary", icon: BookOpen },
-    { name: "Notes", to: "/notes", icon: FileText },
-    { name: "Settings", to: "/settings", icon: Settings },
+    { name: "Diary", to: "/app/diary", icon: BookOpen },
+    { name: "Notes", to: "/app/notes", icon: FileText },
+    { name: "Settings", to: "/app/settings", icon: Settings },
   ];
 
   const cycleTheme = () => {
