@@ -9,3 +9,9 @@ uploads/*
 !uploads/.gitkeep
 *.log
 .DS_Store
+.gradle
+build/
+**/build/
+*.iml
+.idea/
+local.properties

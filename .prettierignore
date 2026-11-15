@@ -5,3 +5,8 @@ uploads
 pnpm-lock.yaml
 *-lock.yaml
 .git
+.gradle
+build
+**/build/**
+.idea
+*.iml
