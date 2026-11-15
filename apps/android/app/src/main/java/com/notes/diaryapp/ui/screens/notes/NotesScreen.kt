@@ -14,92 +14,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.notes.diaryapp.data.model.CreateFolderRequest
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.notes.diaryapp.data.model.Note
-import com.notes.diaryapp.data.model.NoteFolder
-import com.notes.diaryapp.data.remote.ApiClient
 import com.notes.diaryapp.ui.components.ConfirmDialog
 import com.notes.diaryapp.ui.components.OfflineBanner
-import kotlinx.coroutines.launch
+import com.notes.diaryapp.viewmodel.NotesViewModel
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NotesScreen(
     onNoteClick: (String?) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: NotesViewModel = viewModel(),
 ) {
-    val coroutineScope = rememberCoroutineScope()
-    var notes by remember { mutableStateOf<List<Note>>(emptyList()) }
-    var folders by remember { mutableStateOf<List<NoteFolder>>(emptyList()) }
-    var selectedFolderId by remember { mutableStateOf<String?>(null) }
-    var searchQuery by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var isOffline by remember { mutableStateOf(false) }
+    val state by viewModel.uiState.collectAsState()
 
-    var showCreateFolderDialog by remember { mutableStateOf(false) }
-    var newFolderName by remember { mutableStateOf("") }
-
-    var noteToDelete by remember { mutableStateOf<Note?>(null) }
-
-    fun loadData() {
-        isLoading = true
-        coroutineScope.launch {
-            try {
-                val foldersRes = ApiClient.getService().getFolders()
-                if (foldersRes.success && foldersRes.data != null) {
-                    folders = foldersRes.data
-                }
-
-                val notesRes = ApiClient.getService().getNotes(
-                    folderId = selectedFolderId,
-                    status = "active",
-                    search = searchQuery.ifBlank { null }
-                )
-                if (notesRes.success && notesRes.data != null) {
-                    notes = notesRes.data.items
-                }
-                isOffline = false
-            } catch (e: Exception) {
-                isOffline = true
-            } finally {
-                isLoading = false
-            }
-        }
-    }
-
-    LaunchedEffect(selectedFolderId, searchQuery) {
-        loadData()
-    }
-
-    fun togglePin(note: Note) {
-        coroutineScope.launch {
-            try {
-                val res = ApiClient.getService().togglePin(note.id)
-                if (res.success) {
-                    loadData()
-                }
-            } catch (e: Exception) {
-                // Ignore or show offline
-            }
-        }
-    }
-
-    fun deleteNoteConfirmed(note: Note) {
-        coroutineScope.launch {
-            try {
-                val res = ApiClient.getService().deleteNote(note.id)
-                if (res.success) {
-                    noteToDelete = null
-                    loadData()
-                }
-            } catch (e: Exception) {
-                // Handle error
-            }
-        }
-    }
-
-    val pinnedNotes = remember(notes) { notes.filter { it.isPinned } }
-    val otherNotes = remember(notes) { notes.filter { !it.isPinned } }
+    val pinnedNotes = remember(state.notes) { state.notes.filter { it.isPinned } }
+    val otherNotes = remember(state.notes) { state.notes.filter { !it.isPinned } }
 
     Scaffold(
         floatingActionButton = {
@@ -107,25 +38,26 @@ fun NotesScreen(
                 Icon(Icons.Default.Add, contentDescription = "New Note")
             }
         },
-        modifier = modifier
+        modifier = modifier,
     ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp),
         ) {
-            if (isOffline) {
+            if (state.isOffline) {
                 OfflineBanner(modifier = Modifier.padding(bottom = 12.dp))
             }
 
             OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
+                value = state.searchQuery,
+                onValueChange = { viewModel.onSearchQueryChange(it) },
                 placeholder = { Text("Search notes...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -133,63 +65,63 @@ fun NotesScreen(
             // Folder Filter Chips
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 item {
                     FilterChip(
-                        selected = selectedFolderId == null,
-                        onClick = { selectedFolderId = null },
-                        label = { Text("All Notes") }
+                        selected = state.selectedFolderId == null,
+                        onClick = { viewModel.onSelectFolder(null) },
+                        label = { Text("All Notes") },
                     )
                 }
-                items(folders, key = { it.id }) { folder ->
+                items(state.folders, key = { it.id }) { folder ->
                     FilterChip(
-                        selected = selectedFolderId == folder.id,
-                        onClick = { selectedFolderId = folder.id },
-                        label = { Text(folder.name) }
+                        selected = state.selectedFolderId == folder.id,
+                        onClick = { viewModel.onSelectFolder(folder.id) },
+                        label = { Text(folder.name) },
                     )
                 }
                 item {
                     AssistChip(
-                        onClick = { showCreateFolderDialog = true },
-                        label = { Text("+ Folder") }
+                        onClick = { viewModel.openCreateFolderDialog() },
+                        label = { Text("+ Folder") },
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            if (isLoading && notes.isEmpty()) {
+            if (state.isLoading && state.notes.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-            } else if (notes.isEmpty()) {
+            } else if (state.notes.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = if (searchQuery.isBlank()) "No notes yet. Tap + to create one." else "No notes found matching your search.",
+                        text = if (state.searchQuery.isBlank()) "No notes yet. Tap + to create one." else "No notes found matching your search.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             } else {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     if (pinnedNotes.isNotEmpty()) {
                         item {
                             Text(
                                 text = "PINNED",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.primary,
                             )
                         }
                         items(pinnedNotes, key = { it.id }) { note ->
                             NoteCard(
                                 note = note,
                                 onClick = { onNoteClick(note.id) },
-                                onTogglePin = { togglePin(note) },
-                                onDelete = { noteToDelete = note }
+                                onTogglePin = { viewModel.togglePin(note) },
+                                onDelete = { viewModel.setNoteToDelete(note) },
                             )
                         }
                         item {
@@ -197,7 +129,7 @@ fun NotesScreen(
                             Text(
                                 text = "OTHERS",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -206,8 +138,8 @@ fun NotesScreen(
                         NoteCard(
                             note = note,
                             onClick = { onNoteClick(note.id) },
-                            onTogglePin = { togglePin(note) },
-                            onDelete = { noteToDelete = note }
+                            onTogglePin = { viewModel.togglePin(note) },
+                            onDelete = { viewModel.setNoteToDelete(note) },
                         )
                     }
                 }
@@ -215,54 +147,39 @@ fun NotesScreen(
         }
     }
 
-    if (showCreateFolderDialog) {
+    if (state.showCreateFolderDialog) {
         AlertDialog(
-            onDismissRequest = { showCreateFolderDialog = false },
+            onDismissRequest = { viewModel.closeCreateFolderDialog() },
             title = { Text("New Folder") },
             text = {
                 OutlinedTextField(
-                    value = newFolderName,
-                    onValueChange = { newFolderName = it },
+                    value = state.newFolderName,
+                    onValueChange = { viewModel.onNewFolderNameChange(it) },
                     label = { Text("Folder Name") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        if (newFolderName.isNotBlank()) {
-                            coroutineScope.launch {
-                                try {
-                                    val res = ApiClient.getService().createFolder(CreateFolderRequest(newFolderName.trim()))
-                                    if (res.success) {
-                                        newFolderName = ""
-                                        showCreateFolderDialog = false
-                                        loadData()
-                                    }
-                                } catch (e: Exception) {}
-                            }
-                        }
-                    }
-                ) {
+                Button(onClick = { viewModel.createFolder() }) {
                     Text("Create")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showCreateFolderDialog = false }) {
+                TextButton(onClick = { viewModel.closeCreateFolderDialog() }) {
                     Text("Cancel")
                 }
-            }
+            },
         )
     }
 
-    if (noteToDelete != null) {
+    if (state.noteToDelete != null) {
         ConfirmDialog(
             title = "Delete Note",
-            message = "Are you sure you want to move \"${noteToDelete?.title}\" to trash?",
+            message = "Are you sure you want to move \"${state.noteToDelete?.title}\" to trash?",
             confirmText = "Delete",
-            onConfirm = { noteToDelete?.let { deleteNoteConfirmed(it) } },
-            onDismiss = { noteToDelete = null }
+            onConfirm = { viewModel.deleteConfirmed() },
+            onDismiss = { viewModel.setNoteToDelete(null) },
         )
     }
 }
@@ -273,32 +190,33 @@ fun NoteCard(
     note: Note,
     onClick: () -> Unit,
     onTogglePin: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
 ) {
     var expandedMenu by remember { mutableStateOf(false) }
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = { expandedMenu = true }
-            )
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = { expandedMenu = true },
+                ),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
                     text = note.title.ifBlank { "Untitled Note" },
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
                 )
 
                 Row {
@@ -307,33 +225,33 @@ fun NoteCard(
                             imageVector = Icons.Default.PushPin,
                             contentDescription = "Pinned",
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(18.dp),
                         )
                     }
                     Box {
                         IconButton(
                             onClick = { expandedMenu = true },
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(24.dp),
                         ) {
                             Icon(Icons.Default.MoreVert, contentDescription = "Menu", modifier = Modifier.size(18.dp))
                         }
                         DropdownMenu(
                             expanded = expandedMenu,
-                            onDismissRequest = { expandedMenu = false }
+                            onDismissRequest = { expandedMenu = false },
                         ) {
                             DropdownMenuItem(
                                 text = { Text(if (note.isPinned) "Unpin" else "Pin to top") },
                                 onClick = {
                                     expandedMenu = false
                                     onTogglePin()
-                                }
+                                },
                             )
                             DropdownMenuItem(
                                 text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
                                 onClick = {
                                     expandedMenu = false
                                     onDelete()
-                                }
+                                },
                             )
                         }
                     }
@@ -347,7 +265,7 @@ fun NoteCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
 
@@ -358,7 +276,7 @@ fun NoteCard(
                         Text(
                             text = "#$tag",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
                         )
                     }
                 }
