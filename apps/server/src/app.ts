@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import path from "path";
 import { env } from "./config/env";
 import apiRouter from "./routes/index";
 import { errorHandler, notFoundHandler } from "./middlewares/errorMiddleware";
@@ -49,9 +48,6 @@ export function createApp(): express.Application {
   // Body parsers
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
-  // Static uploads serving
-  app.use("/uploads", express.static(path.resolve(env.UPLOAD_DIR)));
 
   // Health check
   app.get("/health", (_req, res) => {

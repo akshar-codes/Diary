@@ -6,7 +6,7 @@ import { NoteService } from "./services/noteService";
 async function bootstrap() {
   try {
     await connectDatabase(env.MONGO_URI);
-    console.log(`Connected to MongoDB at ${env.MONGO_URI}`);
+    console.log("Connected to MongoDB.");
 
     // Trigger initial trash retention check & schedule periodic cleanup every 24h
     NoteService.purgeOldTrash(env.TRASH_RETENTION_DAYS).catch((err) =>

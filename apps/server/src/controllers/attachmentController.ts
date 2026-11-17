@@ -1,30 +1,16 @@
 import { Request, Response, NextFunction } from "express";
-import fs from "fs";
-import path from "path";
 import multer from "multer";
-import { env } from "../config/env";
 import { AttachmentModel } from "../models/Attachment";
 import { NoteModel } from "../models/Note";
 import { AppError } from "../middlewares/errorMiddleware";
-
-// Ensure upload directory exists
-if (!fs.existsSync(env.UPLOAD_DIR)) {
-  fs.mkdirSync(env.UPLOAD_DIR, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, env.UPLOAD_DIR);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}${ext}`;
-    cb(null, uniqueName);
-  },
-});
+import {
+  deleteAttachmentAssets,
+  deleteCloudinaryAsset,
+  uploadToCloudinary,
+} from "../services/cloudinaryStorage";
 
 export const uploadMiddleware = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
   },
@@ -74,14 +60,23 @@ export class AttachmentController {
         }
       }
 
-      const attachment = await AttachmentModel.create({
-        userId: req.userId,
-        noteId: noteId || null,
-        fileName: req.file.originalname,
-        fileType: req.file.mimetype,
-        fileSize: req.file.size,
-        storageKey: req.file.filename,
-      });
+      const uploaded = await uploadToCloudinary(req.file);
+      let attachment;
+      try {
+        attachment = await AttachmentModel.create({
+          userId: req.userId,
+          noteId: noteId || null,
+          fileName: req.file.originalname,
+          fileType: req.file.mimetype,
+          fileSize: req.file.size,
+          storageKey: uploaded.publicId,
+          storageUrl: uploaded.url,
+          storageResourceType: uploaded.resourceType,
+        });
+      } catch (error) {
+        await deleteCloudinaryAsset(uploaded.publicId, uploaded.resourceType);
+        throw error;
+      }
 
       res.status(201).json({
         success: true,
@@ -128,11 +123,7 @@ export class AttachmentController {
         throw new AppError("Attachment not found", 404);
       }
 
-      const filePath = path.join(env.UPLOAD_DIR, attachment.storageKey);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-
+      await deleteAttachmentAssets([attachment]);
       await AttachmentModel.findByIdAndDelete(id);
 
       res.json({

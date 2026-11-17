@@ -7,6 +7,7 @@ import { DiaryTopicLinkModel } from "../models/DiaryTopicLink";
 import { NoteModel } from "../models/Note";
 import { FolderModel } from "../models/Folder";
 import { AttachmentModel } from "../models/Attachment";
+import { deleteAttachmentAssets } from "./cloudinaryStorage";
 import { AppError } from "../middlewares/errorMiddleware";
 import { UpdateProfileInput, ChangePasswordInput, User } from "@notes/shared";
 
@@ -165,6 +166,8 @@ export class UserService {
   }
 
   static async deleteAccount(userId: string): Promise<void> {
+    const attachments = await AttachmentModel.find({ userId });
+    await deleteAttachmentAssets(attachments);
     await Promise.all([
       UserModel.findByIdAndDelete(userId),
       SessionModel.deleteMany({ userId }),

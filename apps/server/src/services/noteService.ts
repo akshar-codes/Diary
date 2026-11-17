@@ -2,6 +2,7 @@ import { Types } from "mongoose";
 import { NoteModel, INote } from "../models/Note";
 import { FolderModel } from "../models/Folder";
 import { AttachmentModel } from "../models/Attachment";
+import { deleteAttachmentAssets } from "./cloudinaryStorage";
 import { AppError } from "../middlewares/errorMiddleware";
 import {
   CreateNoteInput,
@@ -265,6 +266,8 @@ export class NoteService {
       throw new AppError("Note not found.", 404);
     }
 
+    const attachments = await AttachmentModel.find({ noteId: id });
+    await deleteAttachmentAssets(attachments);
     await Promise.all([
       NoteModel.findByIdAndDelete(id),
       AttachmentModel.deleteMany({ noteId: id }),
@@ -278,6 +281,10 @@ export class NoteService {
     }).select("_id");
     const noteIds = trashedNotes.map((n) => n._id);
 
+    const attachments = await AttachmentModel.find({
+      noteId: { $in: noteIds },
+    });
+    await deleteAttachmentAssets(attachments);
     const [deleteResult] = await Promise.all([
       NoteModel.deleteMany({ userId, deletedAt: { $ne: null } }),
       AttachmentModel.deleteMany({ noteId: { $in: noteIds } }),
@@ -295,6 +302,10 @@ export class NoteService {
     }).select("_id");
 
     const noteIds = oldNotes.map((n) => n._id);
+    const attachments = await AttachmentModel.find({
+      noteId: { $in: noteIds },
+    });
+    await deleteAttachmentAssets(attachments);
     const result = await NoteModel.deleteMany({ _id: { $in: noteIds } });
     await AttachmentModel.deleteMany({ noteId: { $in: noteIds } });
 

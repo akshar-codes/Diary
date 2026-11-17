@@ -1,5 +1,4 @@
 import dotenv from "dotenv";
-import path from "path";
 import { z } from "zod";
 
 dotenv.config();
@@ -41,13 +40,12 @@ export const envSchema = z
     CORS_ORIGINS: z
       .string()
       .default(process.env.CORS_ORIGIN || "http://localhost:5173"),
-    UPLOAD_DIR: z.string().default(path.join(process.cwd(), "uploads")),
     TRASH_RETENTION_DAYS: z.coerce.number().default(30),
 
-    // Cloudinary for durable attachment storage (optional in dev, used in production if provided)
-    CLOUDINARY_CLOUD_NAME: z.string().optional(),
-    CLOUDINARY_API_KEY: z.string().optional(),
-    CLOUDINARY_API_SECRET: z.string().optional(),
+    // Optional for local startup; required by the production runtime check.
+    CLOUDINARY_CLOUD_NAME: z.string().trim().optional(),
+    CLOUDINARY_API_KEY: z.string().trim().optional(),
+    CLOUDINARY_API_SECRET: z.string().trim().optional(),
 
     // Android Release Configuration
     ANDROID_VERSION_NAME: z.string().trim().min(1).default("1.0.0"),
@@ -81,12 +79,43 @@ export const envSchema = z
   );
 
 export function parseEnv(rawEnv: NodeJS.ProcessEnv = process.env) {
+  const requiredInProduction = [
+    "MONGO_URI",
+    "JWT_ACCESS_SECRET",
+    "JWT_REFRESH_SECRET",
+    "CLOUDINARY_CLOUD_NAME",
+    "CLOUDINARY_API_KEY",
+    "CLOUDINARY_API_SECRET",
+  ];
   const envToParse = {
     ...rawEnv,
     CORS_ORIGINS:
       rawEnv.CORS_ORIGINS || rawEnv.CORS_ORIGIN || "http://localhost:5173",
   };
-  return envSchema.safeParse(envToParse);
+
+  const schema = envSchema.superRefine((_, context) => {
+    if (rawEnv.NODE_ENV !== "production") return;
+
+    for (const name of requiredInProduction) {
+      if (!rawEnv[name]?.trim()) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [name],
+          message: `${name} is required in production`,
+        });
+      }
+    }
+
+    if (!rawEnv.CORS_ORIGINS?.trim() && !rawEnv.CORS_ORIGIN?.trim()) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["CORS_ORIGINS"],
+        message: "CORS_ORIGINS is required in production",
+      });
+    }
+  });
+
+  return schema.safeParse(envToParse);
 }
 
 const parsedEnv = parseEnv(process.env);

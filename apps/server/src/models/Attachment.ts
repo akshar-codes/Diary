@@ -8,6 +8,8 @@ export interface IAttachment extends Document {
   fileType: string;
   fileSize: number;
   storageKey: string;
+  storageUrl?: string;
+  storageResourceType?: string;
   createdAt: Date;
 }
 
@@ -42,6 +44,8 @@ const attachmentSchema = new Schema<IAttachment>(
       type: String,
       required: true,
     },
+    storageUrl: { type: String },
+    storageResourceType: { type: String },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
@@ -52,7 +56,9 @@ const attachmentSchema = new Schema<IAttachment>(
           ret.userId = ret.userId.toString();
         if (ret.noteId && ret.noteId.toString)
           ret.noteId = ret.noteId.toString();
-        ret.url = `/uploads/${ret.storageKey}`;
+        ret.url = ret.storageUrl || `/uploads/${ret.storageKey}`;
+        delete ret.storageUrl;
+        delete ret.storageResourceType;
         delete ret._id;
         delete ret.__v;
         return ret;

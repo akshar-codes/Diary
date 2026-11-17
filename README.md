@@ -262,7 +262,10 @@ JWT_ACCESS_SECRET=your_super_secret_access_key
 JWT_REFRESH_SECRET=your_super_secret_refresh_key
 JWT_ACCESS_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
-CORS_ORIGIN=http://localhost:5173
+CORS_ORIGINS=http://localhost:5173
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ```
 
 ### 3. Build Shared Package
