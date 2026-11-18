@@ -4,6 +4,27 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.compose'
 }
 
+def appEnv = [:]
+[
+    rootProject.file(".env"),
+    rootProject.file(".env.local")
+].each { appEnvFile ->
+    if (appEnvFile.exists()) {
+        appEnvFile.eachLine { line ->
+            def entry = line.trim()
+            if (entry && !entry.startsWith("#")) {
+                def separator = entry.indexOf("=")
+                if (separator > 0) {
+                    appEnv[entry.substring(0, separator).trim()] = entry.substring(separator + 1).trim()
+                }
+            }
+        }
+    }
+}
+
+def productionApiBaseUrl = System.getenv("API_BASE_URL") ?: appEnv["API_BASE_URL"] ?: "https://your-api.onrender.com/api/v1/"
+def developmentApiBaseUrl = System.getenv("API_BASE_URL") ?: appEnv["API_BASE_URL"] ?: "http://10.0.2.2:5000/api/v1/"
+
 android {
     namespace 'com.notes.diaryapp'
     compileSdk 35
@@ -18,7 +39,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         // Default production API endpoint
-        buildConfigField "String", "API_BASE_URL", '"https://your-api.onrender.com/api/v1/"'
+        buildConfigField "String", "API_BASE_URL", "\"${productionApiBaseUrl}\""
     }
 
     buildTypes {
@@ -26,7 +47,7 @@ android {
             applicationIdSuffix ".debug"
             versionNameSuffix "-debug"
             // Android emulator loopback host for local testing
-            buildConfigField "String", "API_BASE_URL", '"http://10.0.2.2:5000/api/v1/"'
+            buildConfigField "String", "API_BASE_URL", "\"${developmentApiBaseUrl}\""
         }
         release {
             minifyEnabled false

@@ -1,7 +1,9 @@
 import dotenv from "dotenv";
 import { z } from "zod";
 
-dotenv.config();
+dotenv.config({
+  path: ["apps/server/.env.local", ".env.local", "apps/server/.env", ".env"],
+});
 
 // Custom boolean-string transformer: strictly accepts "true" or "false" (case-insensitive)
 export const booleanString = z.union([
