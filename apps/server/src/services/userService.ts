@@ -56,6 +56,13 @@ export class UserService {
       throw new AppError("User not found.", 404);
     }
 
+    if (!user.passwordHash) {
+      throw new AppError(
+        "Accounts created with Google or GitHub cannot change password here.",
+        400,
+      );
+    }
+
     const isMatch = await bcrypt.compare(
       input.currentPassword,
       user.passwordHash,

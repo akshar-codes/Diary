@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { AuthService } from "../services/authService";
+import { env } from "../config/env";
+import { IUser } from "../models/User";
 
 export class AuthController {
   static async register(
@@ -8,15 +10,97 @@ export class AuthController {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const userAgent = req.headers["user-agent"];
-      const ipAddress = req.ip || req.socket.remoteAddress;
-      const result = await AuthService.register(req.body, userAgent, ipAddress);
+      const result = await AuthService.register(req.body);
 
       res.status(201).json({
         success: true,
-        message: "Registration successful",
+        message: result.message,
         data: result,
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async verifyEmail(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const token = (req.query.token as string) || req.body?.token;
+      const userAgent = req.headers["user-agent"];
+      const ipAddress = req.ip || req.socket.remoteAddress;
+
+      const result = await AuthService.verifyEmail(token, userAgent, ipAddress);
+
+      res.json({
+        success: true,
+        message: "Email verified successfully.",
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async resendVerification(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const { email } = req.body;
+      const result = await AuthService.resendVerification(email);
+
+      res.json({
+        success: true,
+        message: result.message,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async oauthCallback(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const platform =
+        (req.query.state as string) || (req.query.platform as string) || "web";
+      const user = req.user as IUser;
+
+      if (!user) {
+        if (platform === "android") {
+          res.redirect("diaryapp://oauth/callback?error=oauth_failed");
+          return;
+        }
+        res.redirect(`${env.FRONTEND_URL}/login?error=oauth_failed`);
+        return;
+      }
+
+      const userAgent = req.headers["user-agent"];
+      const ipAddress = req.ip || req.socket.remoteAddress;
+      const result = await AuthService.createOAuthSession(
+        user,
+        userAgent,
+        ipAddress,
+      );
+
+      const params = new URLSearchParams({
+        accessToken: result.tokens.accessToken,
+        refreshToken: result.tokens.refreshToken,
+      });
+
+      if (platform === "android") {
+        res.redirect(`diaryapp://oauth/callback?${params.toString()}`);
+        return;
+      }
+
+      res.redirect(`${env.FRONTEND_URL}/auth/callback?${params.toString()}`);
     } catch (error) {
       next(error);
     }

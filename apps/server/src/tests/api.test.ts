@@ -21,7 +21,8 @@ describe("Personal Diary & Notes API Suite", () => {
 
   beforeAll(async () => {
     await connectDatabase(TEST_DB_URI);
-    // Clean test database
+    // Clean test database and sync schema indexes
+    await UserModel.syncIndexes();
     await Promise.all([
       UserModel.deleteMany({}),
       DiaryEntryModel.deleteMany({}),
@@ -46,7 +47,7 @@ describe("Personal Diary & Notes API Suite", () => {
   });
 
   describe("1. Authentication Module", () => {
-    it("should register a new user successfully", async () => {
+    it("should register a new user and send verification email pending confirmation", async () => {
       const res = await request(app).post("/api/v1/auth/register").send({
         name: "Alice Johnson",
         email: "alice@example.com",
@@ -55,6 +56,34 @@ describe("Personal Diary & Notes API Suite", () => {
 
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
+      expect(res.body.data.emailSent).toBe(true);
+      expect(res.body.data.email).toBe("alice@example.com");
+    });
+
+    it("should reject login before email is verified", async () => {
+      const res = await request(app).post("/api/v1/auth/login").send({
+        email: "alice@example.com",
+        password: "password123",
+      });
+
+      expect(res.status).toBe(403);
+      expect(res.body.success).toBe(false);
+      expect(res.body.details?.code).toBe("EMAIL_NOT_VERIFIED");
+    });
+
+    it("should verify email using the verification token and issue tokens", async () => {
+      const user = await UserModel.findOne({
+        email: "alice@example.com",
+      }).select("+emailVerifyToken");
+      expect(user).toBeDefined();
+      expect(user?.emailVerifyToken).toBeDefined();
+
+      const res = await request(app)
+        .get(`/api/v1/auth/verify-email?token=${user!.emailVerifyToken}`)
+        .send();
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
       expect(res.body.data.user.email).toBe("alice@example.com");
       expect(res.body.data.tokens.accessToken).toBeDefined();
 
@@ -62,7 +91,7 @@ describe("Personal Diary & Notes API Suite", () => {
       user1Id = res.body.data.user.id;
     });
 
-    it("should prevent duplicate registration with same email", async () => {
+    it("should prevent duplicate registration with same verified email", async () => {
       const res = await request(app).post("/api/v1/auth/register").send({
         name: "Alice Duplicate",
         email: "alice@example.com",
@@ -73,7 +102,7 @@ describe("Personal Diary & Notes API Suite", () => {
       expect(res.body.success).toBe(false);
     });
 
-    it("should login with correct credentials", async () => {
+    it("should login with correct credentials after verification", async () => {
       const res = await request(app).post("/api/v1/auth/login").send({
         email: "alice@example.com",
         password: "password123",
@@ -92,16 +121,70 @@ describe("Personal Diary & Notes API Suite", () => {
       expect(res.status).toBe(401);
     });
 
-    it("should register a second user for cross-user isolation tests", async () => {
-      const res = await request(app).post("/api/v1/auth/register").send({
-        name: "Bob Smith",
+    it("should register and verify a second user for cross-user isolation tests", async () => {
+      const registerRes = await request(app)
+        .post("/api/v1/auth/register")
+        .send({
+          name: "Bob Smith",
+          email: "bob@example.com",
+          password: "password456",
+        });
+
+      expect(registerRes.status).toBe(201);
+
+      const bobUser = await UserModel.findOne({
         email: "bob@example.com",
-        password: "password456",
+      }).select("+emailVerifyToken");
+      expect(bobUser?.emailVerifyToken).toBeDefined();
+
+      const verifyRes = await request(app)
+        .get(`/api/v1/auth/verify-email?token=${bobUser!.emailVerifyToken}`)
+        .send();
+
+      expect(verifyRes.status).toBe(200);
+      user2Token = verifyRes.body.data.tokens.accessToken;
+      user2Id = verifyRes.body.data.user.id;
+    });
+
+    it("should reject resend-verification for already verified account", async () => {
+      const res = await request(app)
+        .post("/api/v1/auth/resend-verification")
+        .send({ email: "alice@example.com" });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
+    it("should allow resend-verification for an unverified account", async () => {
+      await request(app).post("/api/v1/auth/register").send({
+        name: "Charlie Pending",
+        email: "charlie@example.com",
+        password: "password789",
       });
 
-      expect(res.status).toBe(201);
-      user2Token = res.body.data.tokens.accessToken;
-      user2Id = res.body.data.user.id;
+      const res = await request(app)
+        .post("/api/v1/auth/resend-verification")
+        .send({ email: "charlie@example.com" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.emailSent).toBe(true);
+    });
+
+    it("should handle oauth-failed redirect for web and android platforms", async () => {
+      const webRes = await request(app).get(
+        "/api/v1/auth/oauth-failed?platform=web",
+      );
+      expect(webRes.status).toBe(302);
+      expect(webRes.headers.location).toContain("/login?error=oauth_failed");
+
+      const androidRes = await request(app).get(
+        "/api/v1/auth/oauth-failed?platform=android",
+      );
+      expect(androidRes.status).toBe(302);
+      expect(androidRes.headers.location).toContain(
+        "diaryapp://oauth/callback?error=oauth_failed",
+      );
     });
   });
 
