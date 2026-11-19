@@ -4,6 +4,9 @@ import { useAuthStore } from "../store/authStore";
 import { Layout } from "../components/common/Layout";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { RegisterPage } from "../features/auth/pages/RegisterPage";
+import { VerifyEmailSentPage } from "../features/auth/pages/VerifyEmailSentPage";
+import { VerifyEmailPage } from "../features/auth/pages/VerifyEmailPage";
+import { OAuthCallbackPage } from "../features/auth/pages/OAuthCallbackPage";
 import { DiaryPage } from "../features/diary/pages/DiaryPage";
 import { NotesPage } from "../features/notes/pages/NotesPage";
 import { SettingsPage } from "../features/settings/pages/SettingsPage";
@@ -89,6 +92,16 @@ export const AppRouter: React.FC = () => {
             </PublicRoute>
           }
         />
+        <Route
+          path="/verify-email-sent"
+          element={
+            <PublicRoute>
+              <VerifyEmailSentPage />
+            </PublicRoute>
+          }
+        />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/auth/callback" element={<OAuthCallbackPage />} />
 
         {/* Legacy Bookmark Redirects preserving direct navigation */}
         <Route path="/diary" element={<Navigate to="/app/diary" replace />} />

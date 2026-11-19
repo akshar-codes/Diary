@@ -2,18 +2,23 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
+import { SocialButton } from "../../../components/ui/SocialButton";
 import { apiClient } from "../../../lib/api/client";
-import { useAuthStore } from "../../../store/authStore";
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const setAuth = useAuthStore((s) => s.setAuth);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const apiBase = import.meta.env.VITE_API_URL || "/api/v1";
+
+  const handleOAuthLogin = (provider: "google" | "github") => {
+    window.location.href = `${apiBase}/auth/${provider}?platform=web`;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,8 +32,7 @@ export const RegisterPage: React.FC = () => {
         password,
       });
       if (res.data.success) {
-        setAuth(res.data.data.user, res.data.data.tokens);
-        navigate("/diary");
+        navigate(`/verify-email-sent?email=${encodeURIComponent(email)}`);
       }
     } catch (err: any) {
       setError(
@@ -55,6 +59,25 @@ export const RegisterPage: React.FC = () => {
         </div>
 
         <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-xs">
+          {/* Social Logins */}
+          <div className="space-y-2 mb-4">
+            <SocialButton
+              provider="google"
+              onClick={() => handleOAuthLogin("google")}
+            />
+            <SocialButton
+              provider="github"
+              onClick={() => handleOAuthLogin("github")}
+            />
+          </div>
+
+          <div className="relative my-4 flex items-center justify-center">
+            <div className="border-t border-zinc-200 dark:border-zinc-800 w-full" />
+            <span className="bg-white dark:bg-zinc-900 px-3 text-[11px] text-zinc-400 uppercase tracking-wider absolute font-medium">
+              or register with email
+            </span>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="p-3 text-xs rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400">
