@@ -6,6 +6,7 @@ export interface ISession extends Document {
   refreshTokenHash: string;
   userAgent?: string;
   ipAddress?: string;
+  provider?: "email" | "google" | "github";
   lastActiveAt: Date;
   expiresAt: Date;
   createdAt: Date;
@@ -32,6 +33,11 @@ const sessionSchema = new Schema<ISession>(
     ipAddress: {
       type: String,
       trim: true,
+    },
+    provider: {
+      type: String,
+      enum: ["email", "google", "github"],
+      default: "email",
     },
     lastActiveAt: {
       type: Date,

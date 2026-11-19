@@ -61,9 +61,16 @@ export const envSchema = z
       .or(z.literal("")),
     ANDROID_GITHUB_RELEASE_API: z
       .string()
+      .trim()
       .url()
+      .or(z.literal(""))
       .default(
         "https://api.github.com/repos/gupta-akshar/Diary/releases/latest",
+      )
+      .transform(
+        (val) =>
+          val ||
+          "https://api.github.com/repos/gupta-akshar/Diary/releases/latest",
       ),
     ANDROID_RELEASE_NOTES: z
       .string()
@@ -76,6 +83,33 @@ export const envSchema = z
     WEB_VERSION: z.string().trim().min(1).default("1.0.0"),
     WEB_RELEASE_NOTES: z.string().trim().default(""),
     WEB_RELEASE_DATE: z.string().trim().optional(),
+
+    // OAuth Configuration
+    GOOGLE_CLIENT_ID: z.string().trim().optional(),
+    GOOGLE_CLIENT_SECRET: z.string().trim().optional(),
+    GOOGLE_CALLBACK_URL: z
+      .string()
+      .url()
+      .default("http://localhost:5000/api/v1/auth/google/callback"),
+
+    GITHUB_CLIENT_ID: z.string().trim().optional(),
+    GITHUB_CLIENT_SECRET: z.string().trim().optional(),
+    GITHUB_CALLBACK_URL: z
+      .string()
+      .url()
+      .default("http://localhost:5000/api/v1/auth/github/callback"),
+
+    // Brevo Transactional Email Configuration
+    BREVO_API_KEY: z.string().trim().optional(),
+    EMAIL_SENDER_NAME: z.string().trim().default("Journal & Notes"),
+    EMAIL_SENDER_ADDRESS: z
+      .string()
+      .trim()
+      .email()
+      .default("noreply@yourdomain.com"),
+
+    // Frontend Application URL
+    FRONTEND_URL: z.string().url().default("http://localhost:5173"),
   })
   .refine(
     (data) => data.ANDROID_MIN_VERSION_CODE <= data.ANDROID_VERSION_CODE,
