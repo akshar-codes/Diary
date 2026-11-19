@@ -21,6 +21,9 @@ data class User(
     @SerializedName("id") val id: String = "",
     @SerializedName("name") val name: String = "",
     @SerializedName("email") val email: String = "",
+    @SerializedName("provider") val provider: String = "email",
+    @SerializedName("avatarUrl") val avatarUrl: String? = null,
+    @SerializedName("emailVerified") val emailVerified: Boolean = false,
     @SerializedName("createdAt") val createdAt: String? = null,
     @SerializedName("updatedAt") val updatedAt: String? = null
 )
@@ -32,7 +35,10 @@ data class AuthTokens(
 
 data class AuthResponse(
     @SerializedName("user") val user: User = User(),
-    @SerializedName("tokens") val tokens: AuthTokens = AuthTokens()
+    @SerializedName("tokens") val tokens: AuthTokens = AuthTokens(),
+    @SerializedName("emailSent") val emailSent: Boolean = false,
+    @SerializedName("email") val email: String? = null,
+    @SerializedName("message") val message: String? = null
 )
 
 data class LoginRequest(
@@ -44,6 +50,14 @@ data class RegisterRequest(
     @SerializedName("name") val name: String,
     @SerializedName("email") val email: String,
     @SerializedName("password") val password: String
+)
+
+data class ResendVerificationRequest(
+    @SerializedName("email") val email: String
+)
+
+data class VerifyEmailRequest(
+    @SerializedName("token") val token: String
 )
 
 data class RefreshTokenRequest(

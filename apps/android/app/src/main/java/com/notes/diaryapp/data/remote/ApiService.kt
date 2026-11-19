@@ -13,6 +13,12 @@ interface ApiService {
     @POST("auth/register")
     suspend fun register(@Body request: RegisterRequest): ApiResponse<AuthResponse>
 
+    @POST("auth/resend-verification")
+    suspend fun resendVerification(@Body request: ResendVerificationRequest): ApiResponse<Unit>
+
+    @GET("auth/verify-email")
+    suspend fun verifyEmail(@Query("token") token: String): ApiResponse<AuthResponse>
+
     @POST("auth/refresh")
     suspend fun refreshToken(@Body request: RefreshTokenRequest): ApiResponse<AuthTokens>
 
