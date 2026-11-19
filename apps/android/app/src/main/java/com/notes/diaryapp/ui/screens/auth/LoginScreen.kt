@@ -13,23 +13,28 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.notes.diaryapp.auth.OAuthManager
 import com.notes.diaryapp.viewmodel.AuthViewModel
 
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit,
+    onNavigateToVerifyEmail: (email: String) -> Unit = {},
     viewModel: AuthViewModel = viewModel(),
 ) {
     val state by viewModel.loginState.collectAsState()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
 
     Box(
         modifier =
@@ -44,12 +49,13 @@ fun LoginScreen(
                     .fillMaxWidth()
                     .wrapContentHeight(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
                 text = "Personal Diary & Notes",
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
             )
 
             Text(
@@ -58,19 +64,71 @@ fun LoginScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Social Login Buttons
+            OutlinedButton(
+                onClick = { OAuthManager.openGoogleLogin(context) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+            ) {
+                Text(
+                    text = "Continue with Google",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+
+            OutlinedButton(
+                onClick = { OAuthManager.openGithubLogin(context) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+            ) {
+                Text(
+                    text = "Continue with GitHub",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                HorizontalDivider(modifier = Modifier.weight(1f))
+                Text(
+                    text = "  OR  ",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                HorizontalDivider(modifier = Modifier.weight(1f))
+            }
 
             if (state.errorMessage != null) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(
-                        text = state.errorMessage ?: "",
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.padding(12.dp),
-                    )
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = state.errorMessage ?: "",
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        if (state.isUnverified && state.email.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            TextButton(
+                                onClick = { onNavigateToVerifyEmail(state.email) },
+                                modifier = Modifier.align(Alignment.End),
+                            ) {
+                                Text("Verify Email Now \u2192")
+                            }
+                        }
+                    }
                 }
             }
 
@@ -121,8 +179,6 @@ fun LoginScreen(
                     ),
                 modifier = Modifier.fillMaxWidth(),
             )
-
-            Spacer(modifier = Modifier.height(4.dp))
 
             Button(
                 onClick = {

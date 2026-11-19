@@ -10,6 +10,7 @@ import com.notes.diaryapp.auth.TokenManager
 import com.notes.diaryapp.ui.screens.auth.LoginScreen
 import com.notes.diaryapp.ui.screens.auth.PinLockScreen
 import com.notes.diaryapp.ui.screens.auth.RegisterScreen
+import com.notes.diaryapp.ui.screens.auth.VerifyEmailScreen
 import com.notes.diaryapp.ui.screens.diary.TopicDetailScreen
 import com.notes.diaryapp.ui.screens.main.MainScreen
 import com.notes.diaryapp.ui.screens.notes.NoteEditorScreen
@@ -33,6 +34,9 @@ fun AppNavHost(
                 },
                 onNavigateToRegister = {
                     navController.navigate(Screen.Register.route)
+                },
+                onNavigateToVerifyEmail = { email ->
+                    navController.navigate(Screen.VerifyEmail.createRoute(email))
                 }
             )
         }
@@ -46,6 +50,33 @@ fun AppNavHost(
                 },
                 onNavigateToLogin = {
                     navController.popBackStack()
+                },
+                onNavigateToVerifyEmail = { email ->
+                    navController.navigate(Screen.VerifyEmail.createRoute(email))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.VerifyEmail.route,
+            arguments = listOf(
+                navArgument("email") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                }
+            )
+        ) { backStackEntry ->
+            val email = backStackEntry.arguments?.getString("email") ?: ""
+            VerifyEmailScreen(
+                email = email,
+                onVerificationSuccess = {
+                    val nextRoute = if (TokenManager.isPinEnabled()) Screen.PinLock.route else Screen.Main.route
+                    navController.navigate(nextRoute) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                },
+                onNavigateToLogin = {
+                    navController.popBackStack(Screen.Login.route, false)
                 }
             )
         }

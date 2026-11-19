@@ -3,6 +3,11 @@ package com.notes.diaryapp.ui.navigation
 sealed class Screen(val route: String) {
     object Login : Screen("login")
     object Register : Screen("register")
+    object VerifyEmail : Screen("verify_email?email={email}") {
+        fun createRoute(email: String = ""): String {
+            return if (email.isNotBlank()) "verify_email?email=${android.net.Uri.encode(email)}" else "verify_email"
+        }
+    }
     object PinLock : Screen("pin_lock")
     object Main : Screen("main")
     object NoteEditor : Screen("note_editor?noteId={noteId}") {

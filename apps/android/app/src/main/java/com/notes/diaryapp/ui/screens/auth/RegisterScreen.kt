@@ -14,23 +14,28 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.notes.diaryapp.auth.OAuthManager
 import com.notes.diaryapp.viewmodel.AuthViewModel
 
 @Composable
 fun RegisterScreen(
     onRegisterSuccess: () -> Unit,
     onNavigateToLogin: () -> Unit,
+    onNavigateToVerifyEmail: (email: String) -> Unit = {},
     viewModel: AuthViewModel = viewModel(),
 ) {
     val state by viewModel.registerState.collectAsState()
     val focusManager = LocalFocusManager.current
+    val context = LocalContext.current
 
     Box(
         modifier =
@@ -45,12 +50,13 @@ fun RegisterScreen(
                     .fillMaxWidth()
                     .wrapContentHeight(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
                 text = "Create Account",
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
             )
 
             Text(
@@ -59,7 +65,49 @@ fun RegisterScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Social Logins
+            OutlinedButton(
+                onClick = { OAuthManager.openGoogleLogin(context) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+            ) {
+                Text(
+                    text = "Sign up with Google",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+
+            OutlinedButton(
+                onClick = { OAuthManager.openGithubLogin(context) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+            ) {
+                Text(
+                    text = "Sign up with GitHub",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                HorizontalDivider(modifier = Modifier.weight(1f))
+                Text(
+                    text = "  OR  ",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                HorizontalDivider(modifier = Modifier.weight(1f))
+            }
 
             if (state.errorMessage != null) {
                 Card(
@@ -104,7 +152,7 @@ fun RegisterScreen(
             OutlinedTextField(
                 value = state.password,
                 onValueChange = { viewModel.onRegisterPasswordChange(it) },
-                label = { Text("Password (min 8 chars)") },
+                label = { Text("Password (min 6 chars)") },
                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                 trailingIcon = {
                     IconButton(onClick = { viewModel.toggleRegisterPasswordVisibility() }) {
@@ -125,18 +173,22 @@ fun RegisterScreen(
                     KeyboardActions(
                         onDone = {
                             focusManager.clearFocus()
-                            viewModel.register(onRegisterSuccess)
+                            viewModel.register(
+                                onPendingVerification = onNavigateToVerifyEmail,
+                                onImmediateSuccess = onRegisterSuccess,
+                            )
                         },
                     ),
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
-
             Button(
                 onClick = {
                     focusManager.clearFocus()
-                    viewModel.register(onRegisterSuccess)
+                    viewModel.register(
+                        onPendingVerification = onNavigateToVerifyEmail,
+                        onImmediateSuccess = onRegisterSuccess,
+                    )
                 },
                 enabled = !state.isLoading,
                 modifier =
@@ -151,7 +203,7 @@ fun RegisterScreen(
                         strokeWidth = 2.dp,
                     )
                 } else {
-                    Text("Register")
+                    Text("Register with Email")
                 }
             }
 
