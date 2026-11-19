@@ -38,8 +38,10 @@ services:
         value: "1"
       - key: ANDROID_MIN_VERSION_CODE
         value: "1"
+      - key: ANDROID_GITHUB_RELEASE_API
+        value: "https://api.github.com/repos/akshar-codes/Diary/releases/latest"
       - key: ANDROID_APK_URL
-        sync: false
+        value: ""
       - key: ANDROID_RELEASE_NOTES
         value: "Initial release"
       - key: ANDROID_UPDATE_MANDATORY

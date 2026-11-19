@@ -59,6 +59,12 @@ export const envSchema = z
       .url("ANDROID_APK_URL must be a valid URL")
       .optional()
       .or(z.literal("")),
+    ANDROID_GITHUB_RELEASE_API: z
+      .string()
+      .url()
+      .default(
+        "https://api.github.com/repos/gupta-akshar/Diary/releases/latest",
+      ),
     ANDROID_RELEASE_NOTES: z
       .string()
       .trim()
