@@ -2,8 +2,17 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  provider: "email" | "google" | "github";
+  avatarUrl?: string;
+  emailVerified: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface RegisterPendingResponse {
+  emailSent: boolean;
+  message: string;
+  email: string;
 }
 
 export interface SessionInfo {

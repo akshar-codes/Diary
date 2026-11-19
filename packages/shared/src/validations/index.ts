@@ -28,6 +28,18 @@ export const refreshTokenSchema = z.object({
 
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 
+export const resendVerificationSchema = z.object({
+  email: z.string().trim().email("Invalid email address").toLowerCase(),
+});
+
+export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
+
+export const verifyEmailQuerySchema = z.object({
+  token: z.string().min(1, "Verification token is required"),
+});
+
+export type VerifyEmailQueryInput = z.infer<typeof verifyEmailQuerySchema>;
+
 export const updateProfileSchema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
   email: z
